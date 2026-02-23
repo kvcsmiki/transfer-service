@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: transfer-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/transfer-db
+      SPRING_DATASOURCE_USERNAME: transfer
+      SPRING_DATASOURCE_PASSWORD: 1234
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    volumes:
+      - ./logs:/app/logs
+    command: ["sh", "-c", "java $JAVA_OPTS -jar transfer-service.jar"]
+
+  db:
+    image: postgres:15-alpine
+    container_name: transfer-db
+    environment:
+      POSTGRES_DB: transfer-db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data

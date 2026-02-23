@@ -1,0 +1,61 @@
+stages:
+  - build
+  - test
+  - security
+  - deploy
+
+variables:
+  MAVEN_CLI_OPTS: "-B -DskipTests=false"
+
+cache:
+  paths:
+    - .m2/repository
+
+build:
+  stage: build
+  image: maven:3.9.0-eclipse-temurin-21
+  script:
+    - mvn $MAVEN_CLI_OPTS clean package
+  artifacts:
+    paths:
+      - target/*.jar
+
+unit_tests:
+  stage: test
+  image: maven:3.9.0-eclipse-temurin-21
+  script:
+    - mvn test
+  artifacts:
+    reports:
+      junit: target/surefire-reports/*.xml
+
+integration_tests:
+  stage: test
+  image: maven:3.9.0-eclipse-temurin-21
+  services:
+    - name: postgres:15-alpine
+      alias: db
+  script:
+    - mvn verify -Pintegration-tests
+
+security_scan:
+  stage: security
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t transfer-service:latest .
+    - trivy image transfer-service:latest
+
+deploy_staging:
+  stage: deploy
+  image: alpine/k8s:latest
+  script:
+    - echo "Deploy to staging environment..."
+
+deploy_production:
+  stage: deploy
+  when: manual
+  image: alpine/k8s:latest
+  script:
+    - echo "Deploy to production environment..."
